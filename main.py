@@ -3,6 +3,7 @@
 from datetime import datetime
 import Levenshtein as lev
 import pickle
+from collections import OrderedDict
 
 words_to_strip = [
     'what',
@@ -41,23 +42,32 @@ def fuzzy_search(user_input: str, response) -> float:
     output_str = "I'm having trouble with this question, try being more specific"
 
     # find most similar term in responses
+    index = 0
+    response_sorted_best = []
     for fuzzy_term, output in response.items():
         ratio = lev.ratio(user_input.lower(), fuzzy_term.lower())
-        if ratio > best_result:
-            best_result = ratio
-            output_str = output
-    print("Helper Bot: " + output_str)
-    # learn if useful
-    if output_str != "I'm having trouble with this question, try being more specific":
-        helpful_response_input = ""
-        while helpful_response_input != "n" and helpful_response_input != "y":
-            helpful_response_input = input('Was this response useful (y or n): ').lower()
-        if helpful_response_input == "y":
-            response[user_input] = output_str  # remove faulty final space
-            # update new response file
-            output = open('responses.pkl', 'wb')
-            pickle.dump(response, output)
-            output.close()
+
+        response_sorted_best.append([index, ratio])
+        index += 1
+
+    response_sorted_best = sorted(response_sorted_best, key=lambda x: x[1])
+
+    index = 0
+    while index != len(response):
+        print(f"Helper Bot: {list(response.values())[index]}")
+        if output_str != "I'm having trouble with this question, try being more specific":
+            helpful_response_input = ""
+            while helpful_response_input != "n" and helpful_response_input != "y":
+                helpful_response_input = input('Was this response useful (y or n): ').lower()
+            if helpful_response_input == "y":
+                response[user_input] = output_str  # remove faulty final space
+                # update new response file
+                output = open('responses.pkl', 'wb')
+                pickle.dump(response, output)
+                output.close()
+                return
+            if helpful_response_input == "n":
+                index += 1
 
 
 while True:
