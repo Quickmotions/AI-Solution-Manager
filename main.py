@@ -1,15 +1,11 @@
 # Fergus Haak 11/10/21
 
-from datetime import datetime
 import Levenshtein as lev
 import pickle
-from collections import OrderedDict
 
 words_to_strip = [
     'what',
-    'is',
     'the',
-    'a',
     'why',
     'tell,'
     'can',
@@ -17,63 +13,83 @@ words_to_strip = [
     'explain',
     'how',
     'does',
-    'it',
-    'do',
     'does',
     'get',
-    'on',
-    'my'
+    'what\'s',
+    'who',
+    'whats',
+    'hows',
+    'whos',
+    'its',
+    'can',
 ]
 
 
-def fuzzy_search(user_input: str, response) -> float:
-    # strip input
+class AIHelper:
+    """"Calculates similar search terms and handles user inputs"""
+    def __init__(self):
+        self.user_input = ""
+        self.minimum_ratio = 0.3
 
-    user_input_words = user_input.lower().split(' ')
-    user_input = ""
-    for word in user_input_words:
-        if word not in words_to_strip:
-            user_input += word + " "
+    def strip_input(self):
+        full_input = self.user_input
+        user_input_stripped = ""
+        for word in full_input.split():
+            if word not in words_to_strip and len(word) > 2:
+                user_input_stripped += word + " "
+        self.user_input = user_input_stripped
 
-    # set minimum similarity %
-    best_result = 0.3
+    def fuzzy_search(self, user_input, response_manager):
+        self.user_input = user_input
+        self.strip_input()
+        responses_ratios = []
 
-    # create unknown response default
-    output_str = "I'm having trouble with this question, try being more specific"
+        index = 0
+        for fuzzy_term, output in response_manager.responses.items():
+            ratio = lev.ratio(user_input.lower(), fuzzy_term.lower())
+            responses_ratios.append([output, ratio])
+            index += 1
 
-    # find most similar term in responses
-    index = 0
-    response_sorted_best = []
-    for fuzzy_term, output in response.items():
-        ratio = lev.ratio(user_input.lower(), fuzzy_term.lower())
+        self.output_and_learn(sorted(responses_ratios, key=lambda x: x[1], reverse=True),
+                              response_manager)
 
-        response_sorted_best.append([index, ratio])
-        index += 1
+    def output_and_learn(self, sorted_responses, response_manager):
+        attempted_index = 0
+        while attempted_index < 4:
+            if sorted_responses[attempted_index][1] > self.minimum_ratio:
+                print(f"Helper Bot: {sorted_responses[attempted_index][0]} ({sorted_responses[attempted_index][1]})")
+                if input("This this response useful. (y/n): ").lower() == "y":
+                    response_manager.update_responses_dictionary(self.user_input,
+                                                                 sorted_responses[attempted_index][0])
+                    return
+            attempted_index += 1
+        print("Helper Bot: I don't know the answer to that, try being more specific.")
 
-    response_sorted_best = sorted(response_sorted_best, key=lambda x: x[1])
 
-    index = 0
-    while index != len(response):
-        print(f"Helper Bot: {list(response.values())[index]}")
-        if output_str != "I'm having trouble with this question, try being more specific":
-            helpful_response_input = ""
-            while helpful_response_input != "n" and helpful_response_input != "y":
-                helpful_response_input = input('Was this response useful (y or n): ').lower()
-            if helpful_response_input == "y":
-                response[user_input] = output_str  # remove faulty final space
-                # update new response file
-                output = open('responses.pkl', 'wb')
-                pickle.dump(response, output)
-                output.close()
-                return
-            if helpful_response_input == "n":
-                index += 1
+class ResponseDictionary:
+    """Handles responses and stores responses in a pkl file"""
+    def __init__(self):
+        # load response file
+        responses_file = open('responses.pkl', 'rb')
+        self.responses = pickle.load(responses_file)
+        responses_file.close()
 
+    def show_responses(self):
+        for search_term, response_str in self.responses.items():
+            print(f"{search_term} : {response_str}")
+
+    def update_responses_dictionary(self, search_term, response_str):
+        self.responses[search_term] = response_str
+        output = open('responses.pkl', 'wb')
+        pickle.dump(self.responses, output)
+        output.close()
+
+
+response_dictionary = ResponseDictionary()
+helper_bot = AIHelper()
+
+# testing
+response_dictionary.show_responses()
 
 while True:
-    # load response file
-    pkl_file = open('responses.pkl', 'rb')
-    response_list = pickle.load(pkl_file)
-    pkl_file.close()
-
-    fuzzy_search(input("Type query: "), response_list)
+    helper_bot.fuzzy_search(input('Ask a question: '), response_dictionary)
