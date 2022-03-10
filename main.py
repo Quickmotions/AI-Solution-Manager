@@ -4,34 +4,15 @@ import Levenshtein as lev
 import pickle
 
 words_to_strip = [
-    'what',
-    'the',
-    'why',
-    'tell,'
-    'can',
-    'please',
-    'explain',
-    'how',
-    'does',
-    'does',
-    'get',
-    'what\'s',
-    'who',
-    'whats',
-    'hows',
-    'whos',
-    'its',
-    'can',
-    'a',
-    'it',
-    'has',
-    'its'
-
+    'what', 'the', 'why', 'tell,' 'can', 'please', 'explain', 'how', 'does',
+    'does', 'get', 'what\'s', 'who', 'whats', 'hows', 'whos', 'its', 'can',
+    'a', 'it', 'has', 'its'
 ]
 
 
 class AIHelper:
     """"Calculates similar search terms and handles user inputs"""
+
     def __init__(self):
         """
         user_input = temp storage for user input str,
@@ -72,7 +53,7 @@ class AIHelper:
         while attempted_index < 4:
             if sorted_responses[attempted_index][1] > self.minimum_ratio:
                 print(f"Helper Bot: {sorted_responses[attempted_index][0]} "
-                      f"({round(sorted_responses[attempted_index][1],2)})")
+                      f"({round(sorted_responses[attempted_index][1], 2)})")
                 if input("\nThis this response useful. (y/n): ").lower() == "y":
                     response_manager.update_responses_dictionary(self.user_input.lower(),
                                                                  sorted_responses[attempted_index][0])
@@ -87,6 +68,7 @@ class AIHelper:
 
 class ResponseDictionary:
     """Handles responses and stores responses in a pkl file"""
+
     def __init__(self):
         """load response file"""
         responses_file = open('responses.pkl', 'rb')
